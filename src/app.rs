@@ -25,7 +25,6 @@ use crate::app::{config::*, statefullist::StatefulList, states::*};
 pub struct App<'a> {
     pub state_machine: Variant,
     pub machines: StatefulList<(String, String)>,
-    pub status_message: String,
     pub textarea: TextArea<'a>,
     pub editing_name: String,
     pub editing_mac: String,
@@ -39,7 +38,6 @@ impl<'a> App<'a> {
         let mut app = App {
             state_machine: sm,
             machines: StatefulList::with_items(vec![]),
-            status_message: "".into(),
             textarea: TextArea::default(),
             editing_name: "".into(),
             editing_mac: "".into(),
@@ -59,7 +57,11 @@ impl<'a> App<'a> {
             ))),
         }?;
 
-        let config = config::read_config(config_path.as_path())?.machines;
+        let config = if let Ok(config) = config::read_config(config_path.as_path()) {
+            config.machines
+        } else {
+            vec![]
+        };
 
         let machine_tuples: Vec<(String, String)> = config
             .iter()
@@ -343,9 +345,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     // We can now render the item list
     f.render_stateful_widget(items, chunks[0], &mut app.machines.state);
 
-    let status_line = Spans::from(Span::raw(&app.status_message));
+    let keymap_line = Spans::from(Span::raw("Select [↑↓] Send[Enter] Add[a] Delete[d] Quit[q]"));
     f.render_widget(
-        Paragraph::new(status_line).block(Block::default().borders(Borders::TOP)),
+        Paragraph::new(keymap_line).block(Block::default()),
         chunks[1],
     );
 
